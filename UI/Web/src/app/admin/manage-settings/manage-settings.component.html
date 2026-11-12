@@ -9,7 +9,7 @@
     <ng-container>
       <div class="row g-0 mt-4 mb-4">
         @if (settingsForm.get('hostName'); as formControl) {
-          <app-setting-item [title]="t('host-name-label')" [subtitle]="t('host-name-tooltip')">
+          <app-setting-item [title]="t('host-name-label')" [subtitle]="t('host-name-tooltip')" [control]="formControl">
             <ng-template #view>
               {{formControl.value}}
             </ng-template>

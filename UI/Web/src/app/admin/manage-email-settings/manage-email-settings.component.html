@@ -6,25 +6,26 @@
 
     <div class="row g-0 mt-2">
       @if (settingsForm.get('hostName'); as formControl) {
-        <app-setting-item [title]="t('host-name-label')" [subtitle]="t('host-name-tooltip')">
+        <app-setting-item [title]="t('host-name-label')" [subtitle]="t('host-name-tooltip')" [control]="formControl">
           <ng-template #view>
             {{formControl.value | defaultValue}}
           </ng-template>
           <ng-template #edit>
-            <div class="input-group">
+            <div class="input-group has-validation">
               <input id="settings-hostname" aria-describedby="hostname-validations" class="form-control" formControlName="hostName" type="text"
                      [class.is-invalid]="formControl.invalid && formControl.touched">
               <button type="button" class="btn btn-outline-secondary" (click)="autofillGmail()">{{t('gmail-label')}}</button>
               <button type="button" class="btn btn-outline-secondary" (click)="autofillOutlook()">{{t('outlook-label')}}</button>
-            </div>
 
-            @if(settingsForm.dirty || settingsForm.touched) {
-              <div id="hostname-validations" class="invalid-feedback">
-                @if (formControl.errors?.pattern) {
-                  <div>{{t('host-name-validation')}}</div>
-                }
-              </div>
-            }
+              <!-- Must be a sibling of the .is-invalid input inside the input-group, otherwise Bootstrap keeps it hidden -->
+              @if(settingsForm.dirty || settingsForm.touched) {
+                <div id="hostname-validations" class="invalid-feedback">
+                  @if (formControl.errors?.pattern) {
+                    <div>{{t('host-name-validation')}}</div>
+                  }
+                </div>
+              }
+            </div>
           </ng-template>
         </app-setting-item>
       }
