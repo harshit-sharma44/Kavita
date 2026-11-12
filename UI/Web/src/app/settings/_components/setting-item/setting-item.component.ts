@@ -93,6 +93,8 @@ export class SettingItemComponent {
   toggleEditMode() {
 
     if (!this.toggleOnViewClick) return;
+    // Clicking the value in view mode must not bypass a disabled Edit button
+    if (!this.isEditMode && !this.canEdit) return;
     if (this.isEditMode && this.blockCloseWhenInvalid()) return;
 
     this.isEditMode = !this.isEditMode;
