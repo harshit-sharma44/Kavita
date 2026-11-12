@@ -41,6 +41,7 @@ export class GroupedTypeaheadComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdRef = inject(ChangeDetectorRef);
   private readonly accountService = inject(AccountService);
+  private readonly elementRef = inject(ElementRef);
 
   /**
    * Unique id to tie with a label element
@@ -227,6 +228,12 @@ export class GroupedTypeaheadComponent implements OnInit {
     if (event) {
       // If the user is tabbing out of the input field, check if there are results first before closing
       if (this.hasData) {
+        return;
+      }
+
+      // Focus is moving to something inside the dropdown (e.g. the Include Chapters & Files switch), keep it open
+      const nextFocus = event.relatedTarget as Node | null;
+      if (nextFocus && this.elementRef.nativeElement.contains(nextFocus)) {
         return;
       }
     }

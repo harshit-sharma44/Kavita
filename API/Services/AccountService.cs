@@ -137,7 +137,7 @@ public class AccountService : IAccountService
         if (user == null) return false;
         var roles = await _userManager.GetRolesAsync(user);
         if (roles.Contains(PolicyConstants.ReadOnlyRole)) return false;
-        return roles.Contains(PolicyConstants.ChangePasswordRole) || roles.Contains(PolicyConstants.AdminRole);
+        return roles.Contains(PolicyConstants.ChangeRestrictionRole) || roles.Contains(PolicyConstants.AdminRole);
     }
 
 }

@@ -11,6 +11,7 @@ import {TranslocoDirective} from "@jsverse/transloco";
 import {NgTemplateOutlet} from "@angular/common";
 import {SafeHtmlPipe} from "../../../_pipes/safe-html.pipe";
 import {filter, fromEvent, tap} from "rxjs";
+import {AbstractControl} from "@angular/forms";
 
 @Component({
   selector: 'app-setting-item',
@@ -36,6 +37,11 @@ export class SettingItemComponent {
   @Input() subtitle: string | undefined = undefined;
   @Input() labelId: string | undefined = undefined;
   @Input() toggleOnViewClick: boolean = true;
+  /**
+   * Optional form control backing the edit view. While it is invalid, the item stays in edit mode
+   * (clicking outside or on Close will not close it) so the validation message remains visible.
+   */
+  @Input() control: AbstractControl | null = null;
   @Output() editMode = new EventEmitter<boolean>();
 
   /**
@@ -71,7 +77,9 @@ export class SettingItemComponent {
           const mouseEvent = event as MouseEvent;
           const selection = window.getSelection();
           const hasSelection = selection !== null && selection.toString().trim() === '';
-          return !elementRef.nativeElement.contains(mouseEvent.target) && hasSelection;
+          const isOutside = !elementRef.nativeElement.contains(mouseEvent.target) && hasSelection;
+          if (isOutside && this.isEditMode && this.blockCloseWhenInvalid()) return false;
+          return isOutside;
         }),
         tap(() => {
           this.isEditMode = false;
@@ -85,10 +93,24 @@ export class SettingItemComponent {
   toggleEditMode() {
 
     if (!this.toggleOnViewClick) return;
+    // Clicking the value in view mode must not bypass a disabled Edit button
+    if (!this.isEditMode && !this.canEdit) return;
+    if (this.isEditMode && this.blockCloseWhenInvalid()) return;
 
     this.isEditMode = !this.isEditMode;
     this.editMode.emit(this.isEditMode);
     this.cdRef.markForCheck();
+  }
+
+  /**
+   * Returns true (and surfaces the validation message) when the backing control is invalid, meaning edit mode must stay open
+   */
+  private blockCloseWhenInvalid() {
+    if (this.control === null || !this.control.invalid) return false;
+
+    this.control.markAsTouched();
+    this.cdRef.markForCheck();
+    return true;
   }
 
 }
