@@ -420,7 +420,7 @@ public static class SeriesFilter
     public static IQueryable<Series> HasTags(this IQueryable<Series> queryable, bool condition,
         FilterComparison comparison, IList<int> tags)
     {
-        if (!condition || tags.Count == 0) return queryable;
+        if (!condition || (comparison != FilterComparison.IsEmpty && tags.Count == 0)) return queryable;
 
         switch (comparison)
         {
@@ -440,7 +440,7 @@ public static class SeriesFilter
 
                 return queries.Aggregate((q1, q2) => q1.Intersect(q2));
             case FilterComparison.IsEmpty:
-                return queryable.Where(s => s.Metadata.Tags == null || s.Metadata.Tags.Count == 0);
+                return queryable.Where(s => s.Metadata.Tags.Count == 0);
             case FilterComparison.GreaterThan:
             case FilterComparison.GreaterThanEqual:
             case FilterComparison.LessThan:
@@ -543,7 +543,7 @@ public static class SeriesFilter
     public static IQueryable<Series> HasGenre(this IQueryable<Series> queryable, bool condition,
         FilterComparison comparison, IList<int> genres)
     {
-        if (!condition || genres.Count == 0) return queryable;
+        if (!condition || (comparison != FilterComparison.IsEmpty && genres.Count == 0)) return queryable;
 
         switch (comparison)
         {
