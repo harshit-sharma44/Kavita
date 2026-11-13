@@ -620,7 +620,7 @@ public static class SeriesFilter
     public static IQueryable<Series> HasCollectionTags(this IQueryable<Series> queryable, bool condition,
         FilterComparison comparison, IList<int> collectionTags, IList<int> collectionSeries)
     {
-        if (!condition || collectionTags.Count == 0) return queryable;
+        if (!condition || (comparison != FilterComparison.IsEmpty && collectionTags.Count == 0)) return queryable;
 
 
         switch (comparison)
@@ -641,7 +641,7 @@ public static class SeriesFilter
 
                 return queries.Aggregate((q1, q2) => q1.Intersect(q2));
             case FilterComparison.IsEmpty:
-                return queryable.Where(s => collectionSeries.All(c => c != s.Id));
+                return queryable.Where(s => !collectionSeries.Contains(s.Id));
             case FilterComparison.GreaterThan:
             case FilterComparison.GreaterThanEqual:
             case FilterComparison.LessThan:

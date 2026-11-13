@@ -33,19 +33,17 @@ export class EditListComponent implements OnInit {
   @Output() updateItems = new EventEmitter<Array<string>>();
 
   form: FormGroup = new FormGroup({});
-  private combinedItems: string = '';
-
-  get Items() {
-    return this.combinedItems.split(',') || [''];
-  }
+  /**
+   * Names of the form controls backing each row, in display order. Rows are tracked individually (not as a
+   * comma-joined string) so an item containing a comma (e.g. the exclude pattern "Bonus, Extras") stays one row.
+   */
+  controlKeys: Array<string> = [];
+  private nextControlId = 0;
 
 
   ngOnInit() {
-    this.items.forEach((link, index) => {
-      this.form.addControl('link' + index, new FormControl(link, []));
-    });
-
-    this.combinedItems = this.items.join(',');
+    const items = this.items.length > 0 ? this.items : [''];
+    items.forEach(item => this.addControl(item));
 
     this.form.valueChanges.pipe(
       debounceTime(100),
@@ -57,41 +55,36 @@ export class EditListComponent implements OnInit {
   }
 
   add() {
-    this.combinedItems += ',';
-    this.form.addControl('link' + (this.Items.length - 1), new FormControl('', []));
+    this.addControl('');
     this.emit();
     this.cdRef.markForCheck();
   }
 
   remove(index: number) {
-
-    const initialControls = Object.keys(this.form.controls)
-      .filter(key => key.startsWith('link'));
-
-    if (index == 0 && initialControls.length === 1) {
-      this.form.get(initialControls[0])?.setValue('', {emitEvent: true});
+    if (index == 0 && this.controlKeys.length === 1) {
+      this.form.get(this.controlKeys[0])?.setValue('', {emitEvent: true});
       this.emit();
       this.cdRef.markForCheck();
       return;
     }
 
-    // Remove the form control explicitly then rebuild the combinedItems
-    this.form.removeControl('link' + index, {emitEvent: true});
-
-    this.combinedItems = Object.keys(this.form.controls)
-      .filter(key => key.startsWith('link'))
-      .map(key => this.form.get(key)?.value)
-      .join(',');
-
+    const key = this.controlKeys[index];
+    this.controlKeys = this.controlKeys.filter((_, i) => i !== index);
+    this.form.removeControl(key, {emitEvent: true});
 
     this.emit();
     this.cdRef.markForCheck();
   }
 
   emit() {
-    this.updateItems.emit(Object.keys(this.form.controls)
-    .filter(key => key.startsWith('link'))
+    this.updateItems.emit(this.controlKeys
     .map(key => this.form.get(key)?.value)
     .filter(v => v !== null && v !== ''));
+  }
+
+  private addControl(value: string) {
+    const key = 'link' + this.nextControlId++;
+    this.form.addControl(key, new FormControl(value, []));
+    this.controlKeys = [...this.controlKeys, key];
   }
 }

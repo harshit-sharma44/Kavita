@@ -264,6 +264,9 @@ export class SeriesCardComponent implements OnInit, OnChanges {
       case Action.RemoveFromOnDeck:
         this.seriesService.removeFromOnDeck(series.id).subscribe(() => this.reload.emit(series.id));
         break;
+      case Action.Download:
+        this.downloadService.download('series', series);
+        break;
       default:
         break;
     }
