@@ -1984,11 +1984,16 @@ public class SeriesRepository : ISeriesRepository
     public async Task<PagedList<SeriesDto>> GetWantToReadForUserV2Async(int userId, UserParams userParams, FilterV2Dto filter)
     {
         var libraryIds = await _context.Library.GetUserLibraries(userId).ToListAsync();
-        var query = _context.AppUser
+        var wantToReadSeriesIds = _context.AppUser
             .Where(user => user.Id == userId)
             .SelectMany(u => u.WantToRead)
-            .Where(s => libraryIds.Contains(s.Series.LibraryId))
-            .Select(w => w.Series)
+            .Select(w => w.SeriesId);
+
+        // Root the query on Series rather than projecting through AppUser.WantToRead, otherwise filters that
+        // use Include (Read Progress, Reading Date, Average Rating) fail as Include can't follow that projection
+        var query = _context.Series
+            .Where(s => wantToReadSeriesIds.Contains(s.Id))
+            .Where(s => libraryIds.Contains(s.LibraryId))
             .AsSplitQuery()
             .AsNoTracking();
 
