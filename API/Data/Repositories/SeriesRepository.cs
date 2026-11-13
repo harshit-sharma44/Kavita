@@ -979,7 +979,7 @@ public class SeriesRepository : ISeriesRepository
             .HasReleaseYear(hasReleaseYearMaxFilter, FilterComparison.LessThanEqual, filter.ReleaseYearRange?.Max)
             .HasReleaseYear(hasReleaseYearMinFilter, FilterComparison.GreaterThanEqual, filter.ReleaseYearRange?.Min)
             .HasName(hasSeriesNameFilter, FilterComparison.Matches, filter.SeriesNameQuery)
-            .HasRating(hasRatingFilter, FilterComparison.GreaterThanEqual, filter.Rating / 100f, userId)
+            .HasRating(hasRatingFilter, FilterComparison.GreaterThanEqual, filter.Rating, userId)
             .HasAgeRating(hasAgeRating, FilterComparison.Contains, filter.AgeRating)
             .HasPublicationStatus(hasPublicationFilter, FilterComparison.Contains, filter.PublicationStatus)
             .HasTags(hasTagsFilter, FilterComparison.Contains, filter.Tags)

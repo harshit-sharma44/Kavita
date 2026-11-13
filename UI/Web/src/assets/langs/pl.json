@@ -2048,8 +2048,7 @@
     "metadata-filter-row": {
         "unit-reading-date": "Data",
         "unit-reading-progress": "Procent",
-        "unit-average-rating": "Ocena zewnętrzna Kavita+, w procentach",
-        "unit-user-rating": "{{metadata-filter-row.unit-reading-progress}}"
+        "unit-average-rating": "Ocena zewnętrzna Kavita+, w procentach"
     },
     "day-breakdown": {
         "no-data": "Brak postępów, przejdź do czytania",
