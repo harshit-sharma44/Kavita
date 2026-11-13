@@ -93,11 +93,7 @@ public static class SeriesFilter
     {
         if (rating < 0 || !condition || userId <= 0) return queryable;
 
-        // Users see rating as %, so they are likely to pass 10%. We need to turn that into the underlying float encoding
-        if (rating.IsNot(0f))
-        {
-            rating /= 100f;
-        }
+        // AppUserRating.Rating is stored on the same 0-5 star scale the user enters in the filter, so compare directly
 
         switch (comparison)
         {
@@ -424,7 +420,7 @@ public static class SeriesFilter
     public static IQueryable<Series> HasTags(this IQueryable<Series> queryable, bool condition,
         FilterComparison comparison, IList<int> tags)
     {
-        if (!condition || tags.Count == 0) return queryable;
+        if (!condition || (comparison != FilterComparison.IsEmpty && tags.Count == 0)) return queryable;
 
         switch (comparison)
         {
@@ -444,7 +440,7 @@ public static class SeriesFilter
 
                 return queries.Aggregate((q1, q2) => q1.Intersect(q2));
             case FilterComparison.IsEmpty:
-                return queryable.Where(s => s.Metadata.Tags == null || s.Metadata.Tags.Count == 0);
+                return queryable.Where(s => s.Metadata.Tags.Count == 0);
             case FilterComparison.GreaterThan:
             case FilterComparison.GreaterThanEqual:
             case FilterComparison.LessThan:
@@ -547,7 +543,7 @@ public static class SeriesFilter
     public static IQueryable<Series> HasGenre(this IQueryable<Series> queryable, bool condition,
         FilterComparison comparison, IList<int> genres)
     {
-        if (!condition || genres.Count == 0) return queryable;
+        if (!condition || (comparison != FilterComparison.IsEmpty && genres.Count == 0)) return queryable;
 
         switch (comparison)
         {

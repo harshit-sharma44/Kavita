@@ -1936,8 +1936,7 @@
     "metadata-filter-row": {
         "unit-reading-progress": "Portentaje",
         "unit-reading-date": "Fecha",
-        "unit-average-rating": "Valoración externa de Kavita+, en porcentaje",
-        "unit-user-rating": "{{metadata-filter-row.unit-reading-progress}}"
+        "unit-average-rating": "Valoración externa de Kavita+, en porcentaje"
     },
     "manage-external-sources": {
         "description": "Mejora tu experiencia añadiendo servidores externos e inclúyelos cómodamente en tu barra lateral para acceder rápidamente tanto a tu servidor como al de tus amigos.",

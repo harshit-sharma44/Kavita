@@ -1940,8 +1940,7 @@
     "metadata-filter-row": {
         "unit-reading-progress": "Percentagem",
         "unit-reading-date": "Data",
-        "unit-average-rating": "Kavita+ notação externa, percentagem",
-        "unit-user-rating": "{{metadata-filter-row.unit-reading-progress}}"
+        "unit-average-rating": "Kavita+ notação externa, percentagem"
     },
     "stream-pipe": {
         "recently-updated": "{{dashboard.recently-updated-title}}",

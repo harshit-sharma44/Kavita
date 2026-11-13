@@ -4,9 +4,11 @@ using System.IO.Abstractions.TestingHelpers;
 using System.Linq;
 using System.Threading.Tasks;
 using API.Data;
+using API.DTOs.Filtering.v2;
 using API.Entities;
 using API.Entities.Enums;
 using API.Extensions;
+using API.Extensions.QueryExtensions.Filtering;
 using API.Helpers;
 using API.Helpers.Builders;
 using API.Services;
@@ -158,5 +160,106 @@ public class SeriesRepositoryTests
             Assert.Equal(expected, series.Name);
         }
     }
+
+    #region Want To Read & Rating Filters
+
+    /// <summary>
+    /// Creates a user with Alpha (half read, rated 2) and Beta (fully read, rated 4) on their Want to Read list
+    /// </summary>
+    private async Task<AppUser> SetupWantToReadData()
+    {
+        await ResetDb();
+
+        var alphaChapter = new ChapterBuilder("1").WithPages(10).Build();
+        var alpha = new SeriesBuilder("Alpha")
+            .WithPages(10)
+            .WithVolume(new VolumeBuilder("1").WithChapter(alphaChapter).Build())
+            .Build();
+        var betaChapter = new ChapterBuilder("1").WithPages(10).Build();
+        var beta = new SeriesBuilder("Beta")
+            .WithPages(10)
+            .WithVolume(new VolumeBuilder("1").WithChapter(betaChapter).Build())
+            .Build();
+
+        var library = new LibraryBuilder("Want To Read Manga", LibraryType.Manga)
+            .WithFolderPath(new FolderPathBuilder("C:/data/wtr/").Build())
+            .WithSeries(alpha)
+            .WithSeries(beta)
+            .Build();
+
+        var user = new AppUser()
+        {
+            UserName = "wanttoread",
+            Libraries = new List<Library>() { library },
+        };
+        _context.AppUser.Add(user);
+        await _context.SaveChangesAsync();
+
+        user.WantToRead = new List<AppUserWantToRead>()
+        {
+            new() { SeriesId = alpha.Id },
+            new() { SeriesId = beta.Id },
+        };
+        user.Progresses = new List<AppUserProgress>()
+        {
+            new() { SeriesId = alpha.Id, VolumeId = alpha.Volumes.First().Id, ChapterId = alphaChapter.Id, LibraryId = library.Id, PagesRead = 5 },
+            new() { SeriesId = beta.Id, VolumeId = beta.Volumes.First().Id, ChapterId = betaChapter.Id, LibraryId = library.Id, PagesRead = 10 },
+        };
+        user.Ratings = new List<AppUserRating>()
+        {
+            new() { SeriesId = alpha.Id, Rating = 2, HasBeenRated = true },
+            new() { SeriesId = beta.Id, Rating = 4, HasBeenRated = true },
+        };
+        await _context.SaveChangesAsync();
+
+        return user;
+    }
+
+    private static FilterV2Dto CreateFilter(FilterField field, FilterComparison comparison, string value)
+    {
+        return new FilterV2Dto()
+        {
+            Statements = new List<FilterStatementDto>()
+            {
+                new() { Field = field, Comparison = comparison, Value = value }
+            }
+        };
+    }
+
+    [Theory]
+    [InlineData(FilterField.ReadProgress, FilterComparison.LessThan, "100", new[] {"Alpha"})]
+    [InlineData(FilterField.ReadProgress, FilterComparison.GreaterThanEqual, "100", new[] {"Beta"})]
+    [InlineData(FilterField.ReadingDate, FilterComparison.IsBefore, "2100-01-01", new[] {"Alpha", "Beta"})]
+    [InlineData(FilterField.AverageRating, FilterComparison.GreaterThanEqual, "0", new[] {"Alpha", "Beta"})]
+    [InlineData(FilterField.UserRating, FilterComparison.GreaterThan, "3", new[] {"Beta"})]
+    public async Task GetWantToReadForUserV2Async_ShouldApplyFilters(FilterField field, FilterComparison comparison, string value, string[] expected)
+    {
+        var user = await SetupWantToReadData();
+
+        var result = await _unitOfWork.SeriesRepository.GetWantToReadForUserV2Async(user.Id,
+            new UserParams(), CreateFilter(field, comparison, value));
+
+        Assert.Equal(expected, result.Select(s => s.Name).OrderBy(n => n).ToArray());
+    }
+
+    [Theory]
+    [InlineData(FilterComparison.GreaterThan, 3f, new[] {"Beta"})]
+    [InlineData(FilterComparison.LessThan, 3f, new[] {"Alpha"})]
+    [InlineData(FilterComparison.Equal, 4f, new[] {"Beta"})]
+    [InlineData(FilterComparison.GreaterThanEqual, 2f, new[] {"Alpha", "Beta"})]
+    public async Task HasRating_ShouldCompareOnStarScale(FilterComparison comparison, float rating, string[] expected)
+    {
+        var user = await SetupWantToReadData();
+
+        var result = await _context.Series
+            .HasRating(true, comparison, rating, user.Id)
+            .Select(s => s.Name)
+            .OrderBy(n => n)
+            .ToArrayAsync();
+
+        Assert.Equal(expected, result);
+    }
+
+    #endregion
 
 }
