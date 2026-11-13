@@ -199,7 +199,8 @@ public class SeriesService : ISeriesService
 
             if (updateSeriesMetadataDto.SeriesMetadata != null)
             {
-                if (PersonHelper.HasAnyPeople(updateSeriesMetadataDto.SeriesMetadata))
+                // Also run when the series has people but none were sent, otherwise removing the last person is never saved
+                if (PersonHelper.HasAnyPeople(updateSeriesMetadataDto.SeriesMetadata) || series.Metadata.People is {Count: > 0})
                 {
                     void HandleAddPerson(Person person)
                     {

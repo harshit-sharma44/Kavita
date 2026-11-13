@@ -162,7 +162,8 @@ public class ChapterController : BaseApiController
         #endregion
 
         #region People
-        if (PersonHelper.HasAnyPeople(dto))
+        // Also run when the chapter has people but none were sent, otherwise removing the last person is never saved
+        if (PersonHelper.HasAnyPeople(dto) || chapter.People is {Count: > 0})
         {
             void HandleAddPerson(Person person)
             {

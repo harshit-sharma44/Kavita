@@ -220,7 +220,10 @@ public static class PersonHelper
                 dto.Colorists.Count != 0 ||
                 dto.Letterers.Count != 0 ||
                 dto.Editors.Count != 0 ||
-                dto.Translators.Count != 0;
+                dto.Translators.Count != 0 ||
+                dto.Imprints.Count != 0 ||
+                dto.Teams.Count != 0 ||
+                dto.Locations.Count != 0;
     }
 
     public static bool HasAnyPeople(UpdateChapterDto? dto)
@@ -235,6 +238,9 @@ public static class PersonHelper
                dto.Colorists.Count != 0 ||
                dto.Letterers.Count != 0 ||
                dto.Editors.Count != 0 ||
-               dto.Translators.Count != 0;
+               dto.Translators.Count != 0 ||
+               dto.Imprints.Count != 0 ||
+               dto.Teams.Count != 0 ||
+               dto.Locations.Count != 0;
     }
 }

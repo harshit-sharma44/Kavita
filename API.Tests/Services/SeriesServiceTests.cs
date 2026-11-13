@@ -915,6 +915,68 @@ public class SeriesServiceTests : AbstractDbTest
     }
 
     [Fact]
+    public async Task UpdateSeriesMetadata_ShouldRemoveOnlyPerson()
+    {
+        await ResetDb();
+        var s = new SeriesBuilder("Test")
+            .WithMetadata(new SeriesMetadataBuilder().Build())
+            .Build();
+        s.Library = new LibraryBuilder("Test LIb", LibraryType.Book).Build();
+        s.Metadata.People = new List<Person> {new PersonBuilder("Acme Press", PersonRole.Publisher).Build()};
+        _context.Series.Add(s);
+        await _context.SaveChangesAsync();
+
+        var series = await _unitOfWork.SeriesRepository.GetSeriesByIdAsync(1);
+        Assert.Single(series!.Metadata.People);
+
+        // The UI sends every role with empty lists once the only Publisher is removed
+        var success = await _seriesService.UpdateSeriesMetadata(new UpdateSeriesMetadataDto
+        {
+            SeriesMetadata = new SeriesMetadataDto
+            {
+                SeriesId = 1,
+                Publishers = new List<PersonDto>(),
+                PublisherLocked = true
+            },
+        });
+
+        Assert.True(success);
+
+        series = await _unitOfWork.SeriesRepository.GetSeriesByIdAsync(1);
+        Assert.NotNull(series!.Metadata);
+        Assert.Empty(series.Metadata.People);
+        Assert.True(series.Metadata.PublisherLocked);
+    }
+
+    [Fact]
+    public async Task UpdateSeriesMetadata_ShouldAddImprint_NoExistingPeople()
+    {
+        await ResetDb();
+        var s = new SeriesBuilder("Test")
+            .WithMetadata(new SeriesMetadataBuilder().Build())
+            .Build();
+        s.Library = new LibraryBuilder("Test LIb", LibraryType.Book).Build();
+        _context.Series.Add(s);
+        await _context.SaveChangesAsync();
+
+        var success = await _seriesService.UpdateSeriesMetadata(new UpdateSeriesMetadataDto
+        {
+            SeriesMetadata = new SeriesMetadataDto
+            {
+                SeriesId = 1,
+                Imprints = new List<PersonDto> {new () {Id = 0, Name = "New Imprint", Role = PersonRole.Imprint}},
+            },
+        });
+
+        Assert.True(success);
+
+        var series = await _unitOfWork.SeriesRepository.GetSeriesByIdAsync(1);
+        Assert.NotNull(series!.Metadata);
+        Assert.Single(series.Metadata.People);
+        Assert.Equal("New Imprint", series.Metadata.People.First().Name);
+    }
+
+    [Fact]
     public async Task UpdateSeriesMetadata_ShouldLockIfTold()
     {
         await ResetDb();
