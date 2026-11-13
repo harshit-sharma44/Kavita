@@ -129,9 +129,10 @@ export class ReadingListDetailComponent implements OnInit {
       this.accountService.currentUser$.pipe(take(1)).subscribe(user => {
         if (user) {
           this.isAdmin = this.accountService.hasAdminRole(user);
+          const canPromote = this.isAdmin || this.accountService.hasPromoteRole(user);
 
           this.actions = this.actionFactoryService.getReadingListActions(this.handleReadingListActionCallback.bind(this))
-            .filter(action => this.readingListService.actionListFilter(action, readingList, this.isAdmin));
+            .filter(action => this.readingListService.actionListFilter(action, readingList, canPromote));
           this.cdRef.markForCheck();
         }
       });
@@ -175,6 +176,22 @@ export class ReadingListDetailComponent implements OnInit {
             this.readingListSummary = (this.readingList.summary === null ? '' : this.readingList.summary).replace(/\n/g, '<br>');
             this.cdRef.markForCheck();
           })
+        });
+        break;
+      case Action.Promote:
+        this.actionService.promoteMultipleReadingLists([readingList], true, () => {
+          if (this.readingList) {
+            this.readingList.promoted = true;
+          }
+          this.cdRef.markForCheck();
+        });
+        break;
+      case Action.UnPromote:
+        this.actionService.promoteMultipleReadingLists([readingList], false, () => {
+          if (this.readingList) {
+            this.readingList.promoted = false;
+          }
+          this.cdRef.markForCheck();
         });
         break;
     }
