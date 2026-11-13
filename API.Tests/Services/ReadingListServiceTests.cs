@@ -876,6 +876,77 @@ public class ReadingListServiceTests
     }
     #endregion
 
+    #region GetReadingListDtosForUserAsync
+
+    private async Task GetReadingListDtosForUser_SetupBaseData(AgeRating readerRestriction, bool includeUnknowns)
+    {
+        var library = new LibraryBuilder("Test Lib", LibraryType.Book).Build();
+
+        var admin = new AppUserBuilder("admin", string.Empty)
+            .WithLibrary(library)
+            .Build();
+        admin.ReadingLists.Add(new ReadingListBuilder("Unknown List").WithRating(AgeRating.Unknown).WithPromoted(true).Build());
+        admin.ReadingLists.Add(new ReadingListBuilder("Everyone List").WithRating(AgeRating.Everyone).WithPromoted(true).Build());
+        admin.ReadingLists.Add(new ReadingListBuilder("Mature List").WithRating(AgeRating.Mature).WithPromoted(true).Build());
+        _context.AppUser.Add(admin);
+
+        var reader = new AppUserBuilder("reader", string.Empty)
+            .WithLibrary(library)
+            .Build();
+        reader.AgeRestriction = readerRestriction;
+        reader.AgeRestrictionIncludeUnknowns = includeUnknowns;
+        _context.AppUser.Add(reader);
+
+        await _unitOfWork.CommitAsync();
+    }
+
+    private async Task<IList<string>> GetVisibleReadingListTitles(string username)
+    {
+        var user = await _context.AppUser.SingleAsync(u => u.UserName == username);
+        var lists = await _unitOfWork.ReadingListRepository.GetReadingListDtosForUserAsync(user.Id, true,
+            UserParams.Default, false);
+        return lists.Select(l => l.Title).ToList();
+    }
+
+    [Fact]
+    public async Task GetReadingListDtosForUserAsync_ShouldReturnAll_WhenNoAgeRestriction()
+    {
+        await ResetDb();
+        await GetReadingListDtosForUser_SetupBaseData(AgeRating.NotApplicable, false);
+
+        var titles = await GetVisibleReadingListTitles("reader");
+
+        Assert.Equal(3, titles.Count);
+    }
+
+    [Fact]
+    public async Task GetReadingListDtosForUserAsync_ShouldRestrictAboveRating_AndIncludeUnknowns()
+    {
+        await ResetDb();
+        await GetReadingListDtosForUser_SetupBaseData(AgeRating.Teen, true);
+
+        var titles = await GetVisibleReadingListTitles("reader");
+
+        Assert.Equal(2, titles.Count);
+        Assert.Contains("Unknown List", titles);
+        Assert.Contains("Everyone List", titles);
+        Assert.DoesNotContain("Mature List", titles);
+    }
+
+    [Fact]
+    public async Task GetReadingListDtosForUserAsync_ShouldRestrictAboveRating_AndExcludeUnknowns()
+    {
+        await ResetDb();
+        await GetReadingListDtosForUser_SetupBaseData(AgeRating.Teen, false);
+
+        var titles = await GetVisibleReadingListTitles("reader");
+
+        Assert.Single(titles);
+        Assert.Contains("Everyone List", titles);
+    }
+
+    #endregion
+
     #region UserHasReadingListAccess
     // TODO: UserHasReadingListAccess tests are unavailable because I can't mock UserManager<AppUser>
     [Fact(Skip = "Unable to mock UserManager<AppUser>")]
