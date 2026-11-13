@@ -4,6 +4,7 @@ using System.IO.Abstractions.TestingHelpers;
 using System.Linq;
 using System.Threading.Tasks;
 using API.Data;
+using API.DTOs.Filtering.v2;
 using API.Entities;
 using API.Entities.Enums;
 using API.Extensions;
@@ -158,5 +159,80 @@ public class SeriesRepositoryTests
             Assert.Equal(expected, series.Name);
         }
     }
+
+    #region Collection Tags filter
+
+    private async Task<AppUser> SetupCollectionFilterData()
+    {
+        var alpha = new SeriesBuilder("Alpha").Build();
+        var beta = new SeriesBuilder("Beta").Build();
+        var gamma = new SeriesBuilder("Gamma").Build();
+        var library = new LibraryBuilder("Collection Filter Manga", LibraryType.Manga)
+            .WithFolderPath(new FolderPathBuilder("C:/data/collection-filter/").Build())
+            .WithSeries(alpha)
+            .WithSeries(beta)
+            .WithSeries(gamma)
+            .Build();
+
+        var user = await _context.AppUser
+            .Include(u => u.Libraries)
+            .Include(u => u.Collections)
+            .SingleAsync(u => u.UserName == "majora2007");
+        user.Libraries.Add(library);
+        user.Collections.Add(new AppUserCollectionBuilder("Alpha Only Favorites").WithItem(alpha).Build());
+
+        // Gamma is only in another user's private (not promoted) collection, which majora2007 cannot see
+        _context.AppUser.Add(new AppUser()
+        {
+            UserName = "other",
+            Collections = new List<AppUserCollection>()
+            {
+                new AppUserCollectionBuilder("Private Gamma").WithItem(gamma).Build()
+            }
+        });
+
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
+    private static FilterV2Dto CollectionTagsFilter(FilterComparison comparison, string value)
+    {
+        return new FilterV2Dto()
+        {
+            Combination = FilterCombination.And,
+            Statements = new List<FilterStatementDto>()
+            {
+                new() { Field = FilterField.CollectionTags, Comparison = comparison, Value = value }
+            }
+        };
+    }
+
+    [Fact]
+    public async Task GetSeriesDtoForLibraryIdV2Async_CollectionTagsIsEmpty_ExcludesSeriesInACollection()
+    {
+        var user = await SetupCollectionFilterData();
+
+        var series = await _unitOfWork.SeriesRepository.GetSeriesDtoForLibraryIdV2Async(user.Id, new UserParams(),
+            CollectionTagsFilter(FilterComparison.IsEmpty, string.Empty));
+        var names = series.Select(s => s.Name).ToList();
+
+        Assert.DoesNotContain("Alpha", names);
+        Assert.Contains("Beta", names);
+        Assert.Contains("Gamma", names);
+    }
+
+    [Fact]
+    public async Task GetSeriesDtoForLibraryIdV2Async_CollectionTagsContains_OnlyReturnsSeriesInTheCollection()
+    {
+        var user = await SetupCollectionFilterData();
+        var collectionId = user.Collections.Single().Id;
+
+        var series = await _unitOfWork.SeriesRepository.GetSeriesDtoForLibraryIdV2Async(user.Id, new UserParams(),
+            CollectionTagsFilter(FilterComparison.Contains, collectionId + string.Empty));
+
+        Assert.Equal(new[] {"Alpha"}, series.Select(s => s.Name));
+    }
+
+    #endregion
 
 }

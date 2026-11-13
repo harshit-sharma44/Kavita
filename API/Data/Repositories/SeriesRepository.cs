@@ -1094,6 +1094,19 @@ public class SeriesRepository : ISeriesRepository
 
         var value = (IList<int>) FilterFieldValueConverter.ConvertValue(collectionStmt.Field, collectionStmt.Value);
 
+        if (collectionStmt.Comparison == FilterComparison.IsEmpty)
+        {
+            // Is Empty has no value: keep only series that are in none of the collections the user can see
+            var seriesInAnyCollection = await _context.AppUserCollection
+                .Where(uc => uc.Promoted || uc.AppUserId == userId)
+                .SelectMany(uc => uc.Items)
+                .Select(s => s.Id)
+                .Distinct()
+                .ToListAsync();
+
+            return query.HasCollectionTags(true, collectionStmt.Comparison, value, seriesInAnyCollection);
+        }
+
         if (value.Count == 0)
         {
             return query;
