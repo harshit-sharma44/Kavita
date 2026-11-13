@@ -114,9 +114,10 @@ export const BookWhiteTheme = `
   color: #8db2e5 !important;
 }
 
+/* Images are not dimmed on a light theme, otherwise white images would not match the page background */
 .book-content img, .book-content img[src] {
 z-index: 1;
-filter: brightness(0.85) !important;
+filter: none !important;
 background-color: initial !important;
 }
 
