@@ -183,10 +183,10 @@ public class ReadingListRepository : IReadingListRepository
 
     public async Task<PagedList<ReadingListDto>> GetReadingListDtosForUserAsync(int userId, bool includePromoted, UserParams userParams, bool sortByLastModified = true)
     {
-        var userAgeRating = (await _context.AppUser.SingleAsync(u => u.Id == userId)).AgeRestriction;
+        var userAgeRating = await _context.AppUser.GetUserAgeRestriction(userId);
         var query = _context.ReadingList
             .Where(l => l.AppUserId == userId || (includePromoted &&  l.Promoted ))
-            .Where(l => l.AgeRating >= userAgeRating);
+            .RestrictAgainstAgeRestriction(userAgeRating);
         query = sortByLastModified ? query.OrderByDescending(l => l.LastModified) : query.OrderBy(l => l.NormalizedTitle);
 
        var finalQuery = query.ProjectTo<ReadingListDto>(_mapper.ConfigurationProvider)

@@ -116,6 +116,10 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
   pageLayoutMode: PageViewModeType = 'multiple';
   scrollMode: ScrollModeType = ScrollModeType.vertical;
   spreadMode: SpreadType = 'off';
+  /**
+   * Set when an Escape keydown started in an input (ie the find bar), so the matching keyup does not close the reader
+   */
+  ignoreNextEscapeKeyUp = false;
 
   constructor(@Inject(DOCUMENT) private document: Document) {
       this.navService.hideNavBar();
@@ -123,11 +127,29 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
       this.navService.hideSideNav();
   }
 
+  @HostListener('window:keydown', ['$event'])
+  handleKeyDown(event: KeyboardEvent) {
+    if (event.key !== KEY_CODES.ESC_KEY) return;
+
+    // pdf.js closes the find bar on keydown (and hides the input), so by the time keyup fires focus is no longer on the input.
+    // Remember where the Escape started so only the find bar closes and not the whole reader.
+    const target = event.target as HTMLElement | null;
+    const isInputFocused = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+    const isInFindBar = !!target?.closest?.('#findbar');
+    const isFindBarOpen = this.document.querySelector('#findbar:not(.hidden)') !== null;
+    this.ignoreNextEscapeKeyUp = isInputFocused || isInFindBar || isFindBarOpen;
+  }
+
   @HostListener('window:keyup', ['$event'])
   handleKeyPress(event: KeyboardEvent) {
-    if (event.key === KEY_CODES.ESC_KEY) {
-      this.closeReader();
+    if (event.key !== KEY_CODES.ESC_KEY) return;
+
+    if (this.ignoreNextEscapeKeyUp) {
+      this.ignoreNextEscapeKeyUp = false;
+      return;
     }
+
+    this.closeReader();
   }
 
   @HostListener('window:resize', ['$event'])
